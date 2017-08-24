@@ -1,0 +1,1 @@
+Out-File -InputObject (Get-Date) -FilePath "C:\Logs\111.txt" -Append -Encoding default

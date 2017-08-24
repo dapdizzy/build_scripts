@@ -1,0 +1,1 @@
+powershell -Command ".\Run-ElixirApp.ps1 '%1'"
