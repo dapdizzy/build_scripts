@@ -692,6 +692,9 @@ function Compile-Build
                         $axProcess.Kill()
                         Throw ("Error: AX compile partial did not complete within {0} minutes" -f $CompileAllTimeout)
                     }
+
+                    # Synchronize AX Database right before CIL Compilation (Synchronization issues do affect CIL compilation which seems to be an assertive process in relation to DB schema (tables presence in DB in particular).
+                    Synchronize-AX 0 $true
                 }
                 else
                 {
@@ -727,6 +730,7 @@ function Compile-Build
         if([string]::Equals("$AxCompileAll", 'true', [System.StringComparison]::OrdinalIgnoreCase))
         {
             #Step     
+            Write-InfoLog "Now we're going to check AxCompileAll_Pass1.html in '$clientLogDir' location"
             Check-CompilerErrors
             Write-InfoLog ("                                                                 ") 
             Write-InfoLog ("                                                                 ") 
@@ -959,9 +963,10 @@ function Check-CompilerErrors
 {
     Write-InfoLog ("Begin Check-CompilerErrors: {0}" -f (Get-Date))
     $compileErrors = $false
-    $compileLogFile = (join-path $clientLogDir "AxCompileAll.html")
- 	if ((test-Path $compileLogFile) -eq $true)
+    $compileLogFile = gci -Path "$clientLogDir\AxCompileAll*.html" -File -ErrorAction SilentlyContinue | sort LastWriteTime -Descending | select -f 1
+ 	if ($compileLogFile -and (Test-Path -Path $compileLogFile.FullName))
 	{
+        Write-InfoLog "AxCompileAll.html file found ($($compileLogFile.FullName))"
 		foreach ($line in (Get-Content $compileLogFile))
 		{
 			if (($XMLstarted -eq $true) -and ($line.Contains('</XML>')))
@@ -1262,6 +1267,11 @@ function CreateSpecificXPOs([string]$xpoFileName)
     {
         $exceptionalTables += $line.Trim()
     }
+    $exceptionalObjects = @()
+    foreach ($line in (Get-Content (Join-Path (Split-Path -Parent $script:startupDir) 'ExceptionalObjects.txt')))
+    {
+        $exceptionalObjects += $line.Trim()
+    }
     foreach ($line in $fileContents)
     {
         # Finalize current element writing
@@ -1281,7 +1291,30 @@ function CreateSpecificXPOs([string]$xpoFileName)
                     break
                 }
             }
-            if ($isExceptionalTable -or ($line -match 'Table : Sys' -or $line -match 'EventInbox' -or $line -match 'Table : DirPartyTable')) # i.e., a System table
+            $isExceptionalObject = $false
+            foreach ($object in $exceptionalObjects)
+            {
+                if ($line -match $object)
+                {
+                    $isExceptionalObject = $true
+                    break
+                }
+            }
+            if ($isExceptionalObject)
+            {
+                if (!$exceptionalObjectsWriter)
+                {
+                    $exceptionalObjectsFileName = Join-Path (Split-Path -Parent $xpoFileName) ('{0}_exceptional.xpo' -f [System.IO.Path]::GetFileNameWithoutExtension($xpoFileName))
+                    $exceptionalObjectsWriter = InitXpoWriter $exceptionalObjectsFileName
+                    if (!$writers)
+                    {
+                        $writers = new-object 'System.Collections.Generic.List[System.IO.StreamWriter]'
+                    }
+                    $writers.Add($exceptionalObjectsWriter)
+                }
+                $writer = $exceptionalObjectsWriter
+            }
+            elseif ($isExceptionalTable -or ($line -match 'Table : Sys' -or $line -match 'EventInbox' -or $line -match 'Table : DirPartyTable')) # i.e., a System table
             {
                 if (!$sysTabWriter)
                 {
@@ -1821,6 +1854,26 @@ function Import-AxCode([System.IO.FileSystemInfo]$model)
             Write-InfoLog ('Import {0} the second time as table references are not imported from the first time' -f $xpoName)
             Import-XPO $xpoName
         }
+    }
+
+    # Import Exceptional Objects as the very last step
+    $exceptionalFileName = gci -Path "$currentLogFolder\*_exceptional.xpo" -Name -ErrorAction SilentlyContinue | select -f 1
+    if ($exceptionalFileName)
+    {
+        Write-InfoLog '------------------------------------------------------------------------------------------------------'
+        Write-InfoLog ('---------------Importing Exceptional objects via Import AOT Startup CMD at {0}---------------------' -f (Get-Date))
+        
+        $arguments = ('-lazyclassloading -lazytableloading "-StartupCmd=aotimport_{0}" -internal=noModalBoxes' -f (join-path $currentLogFolder $exceptionalFileName))
+        $axProcess = Start-Process $ax32 -WorkingDirectory $clientBinDir -PassThru -WindowStyle minimized -ArgumentList $arguments -OutVariable out
+        Write-InfoLog $out
+        if ($axProcess.WaitForExit(60000*5) -eq $false)
+        {
+            Write-InfoLog("Error: AX AOT import did not complete within {0} minutes" -f $ImportTimeout)
+        	$axProcess.Kill()
+        }
+        
+        Write-Infolog ('---------------Finished importing of Exceptional objects via Import AOT Startup CMD at {0}------------------' -f (Get-Date))
+        Write-InfoLog $barLine
     }
     
     Write-InfoLog ("Done Import combined xpo for model {0}: {1}" -f $modelName,(Get-Date))
