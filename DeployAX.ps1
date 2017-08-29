@@ -43,7 +43,8 @@ function Get-InputVariables ($homePath, $fileName = "DeployParameters.txt")
             $line = $line.split("=")
             if($line.Count -eq 2)
             {
-                [System.Environment]::SetEnvironmentVariable($line[0],$line[1])     
+                [System.Environment]::SetEnvironmentVariable($line[0],$line[1])   
+                Write-Infolog "Setting $($line[0]): $($line[1])"
             }
             else
             {
@@ -64,11 +65,13 @@ function Get-InputVariables ($homePath, $fileName = "DeployParameters.txt")
         $script:sqlModelDatabase    = GetEnvironmentVariable("SqlModelDatabase")
     }
     $script:dropLocation            = GetEnvironmentVariable("BuildLocation")
+    Write-InfoLog "Drop location is: $($script:dropLocation)"
     # Assume this is 'drop root' (the folder containing concrete build folders) folder in case this is not a 'build folder'
     if ((Is-BuildFolder $script:dropLocation) -ne $true)
     {
         # Override the value with the latest successful build folder found
         $script:dropLocation = (Get-LastSuccessfulBuild $script:dropLocation).FullName
+        # Handle the case when dropLocation is null (i.e., the LastSuccessfulBuild is not found).
         Write-Output "Deploting build $(Split-Path -Path $script:dropLocation -Leaf)"
     }
     if ($script:ServerBinDir -eq $null -or [string]::isNullOrEmpty($script:serverBinDir))

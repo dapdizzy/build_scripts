@@ -210,7 +210,7 @@ function Create-CurrentLogFolder
     $date = $date.Replace('/', '')
     $date = $date.Replace(':', '')
     $script:currentLogFolder = (join-path $logFolder $date)
-    New-Item $currentLogFolder -type directory
+    New-Item $currentLogFolder -type directory -ErrorAction Ignore
 }
 
 function Create-BuildFolders
@@ -2106,6 +2106,8 @@ function Install-PackagesToGAC($packagesFolder)
         #'C:\Program Files (x86)\Microsoft SDKs\Windows\v8.1A\bin\NETFX 4.5.1 Tools\x64\gacutil.exe'
     }
 
+    Write-Host "Gacutil path is ($gacutilExe)" -ForegroundColor Cyan
+
     $localPackagesFolder = Copy-Packages $packagesFolder
 
     if ($localPackagesFolder -eq $null)
@@ -2149,12 +2151,12 @@ function Install-PackagesToGAC($packagesFolder)
     ForEach ($dll in $dlls)
     {
         $p = Start-Process $gacutilExe -ArgumentList ('/i "{0}"' -f $dll.FullName) -OutVariable out -PassThru
-        if ($p.WaitForExit(5000) -ne $true)
+        <#if ($p -and ($p.HasExited -eq $false) -and $p.WaitForExit(5000) -ne $true)
         {
             Write-ErrorLog 'GacUtil was unable to complete in 5 seconds'
             $p.Kill()
         }
-        Write-Infolog $out
+        Write-Infolog $out#>
     }
 }
 
