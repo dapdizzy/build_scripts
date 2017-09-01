@@ -270,7 +270,7 @@ function Build-AX
         {            
             Sync-Files
             Set-NextVersion
-            #Apply-Label
+            Apply-Label
         }
         finally
         {
