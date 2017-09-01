@@ -2157,7 +2157,7 @@ function Install-PackagesToGAC($packagesFolder)
         {
             Write-ErrorLog 'GacUtil was unable to complete in 5 seconds'
             $p.Kill()
-        }
+        }#>
         # Write-Infolog $out
     }
 }
