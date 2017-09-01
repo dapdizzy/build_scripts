@@ -110,6 +110,9 @@ function Get-InputVariables ($homePath, $fileName = "DeployParameters.txt")
     $script:InstallModelStore       = GetEnvironmentVariable("InstallModelStore")
     $script:MsBuildPath             = GetEnvironmentVariable("MsBuildDir")
     $script:TFSWorkspace            = GetEnvironmentVariable("TFSWorkspace")
+
+    # New environment variable to store Local Drop location to copy ModelStores to.
+    $script:LocalDrop               = GetEnvironmentVariable("LocalDrop")
     
     if ((Test-Path $RunDeployParmFile) -eq $false)
     {

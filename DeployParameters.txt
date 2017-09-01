@@ -1,11 +1,12 @@
-BuildLocation=\\MOW04DEV014\Drop\Fax
+BuildLocation=C:\AX\Build\Drop\WaxR3
 CompileAll=true
 CompileCil=true
 InstallModelStore=true
-MsBuildDir=C:\Program Files\(x86)\MSBuild\12.0\Bin
+LocalDrop=G:\AX\Build\Drop\WaxR3
+MsBuildDir=C:\Program Files (x86)\MSBuild\12.0\Bin
 NoCleanOnError=true
-SystemName=FAX
+SystemName=WaxR3
 TFSIntegration=true
 TFSURL=https://mediamarkt.visualstudio.com/defaultcollection
-TFSWorkspace=$FAX/FAX
+TFSWorkspace=$WAXR3/WAXR3
 UninstallOnly=false

@@ -2062,9 +2062,11 @@ function Copy-Modelstores([string]$serverPath)
         return $serverPath
     }
 
-    $localPath = Join-Path $currentLogFolder Modelstores
+    Write-Host "Using LocalDrop location ($script:LocalDrop)" -ForegroundColor Cyan
+
+    $localPath = Join-Path $script:LocalDrop Modelstores
     $returnValue = $localPath
-    New-Item $localPath -ItemType Directory | Out-Null
+    New-Item $localPath -ItemType Directory -ErrorAction Ignore | Out-Null
 
     Write-Host "Modelstore local folder: $localPath" -ForegroundColor Cyan
 
@@ -2896,8 +2898,10 @@ function Sync-TFSWorkspace($tfsUrl, $localPath)
     {
         throw "Workspace mapped to $localPath is not found"
     }
+    Write-InfoLog "Workspace is $workspace"
+    $versionSpec = [Microsoft.TeamFoundation.VersionControl.Client.VersionSpec]::Latest
     Write-InfoLog ("Sync files started") 
-    $g = $workspace.Get()
+    $g = $workspace.Get($versionSpec, 1)
     $g # Should we even return a value?
 }
 
@@ -3000,6 +3004,7 @@ function Sync-FilesToALabel
     $itemSpec = new-object Microsoft.TeamFoundation.VersionControl.Client.ItemSpec ($TFSWorkspace, 2)
     if($tfsLabel -ne $null)
     {
+        Write-InfoLog "Using TfsLabel to create a Label Spec. TfsLabel is $tfsLabel"
         $labelSpec = new-object Microsoft.TeamFoundation.VersionControl.Client.LabelVersionSpec ($tfslabel)
     }
     else
@@ -3015,6 +3020,7 @@ function Sync-FilesToALabel
         $wName = 'AXBuild_' + $guid
         Write-InfoLog ("Creating workspace {0}" -f $wName) 
         $labelName = ($tfsLabelPrefix -f $currentVersion)
+        Write-InfoLog "Label Name: $labelName"
         <#$label = new-object Microsoft.TeamFoundation.VersionControl.Client.VersionControlLabel  ($tfs.vcs, $labelName, $tfs.VCS.AuthenticatedUser, $null, $labelComments)
         $itemSpec = new-object Microsoft.TeamFoundation.VersionControl.Client.ItemSpec ($TFSWorkspace, 2)
         $versionSpec = [Microsoft.TeamFoundation.VersionControl.Client.VersionSpec]::Latest#>
@@ -3036,6 +3042,7 @@ function Sync-FilesToALabel
         # Try to move this call to workspace creation block upwards
         #$w.Map($tfsWorkspace, $ApplicationSourceDir)
         Write-InfoLog ("Sync files started")
+        Write-InfoLog "Label Spec is $labelSpec"
         $g = $w.Get($labelSpec, 1)
 
         Write-Host "Setting the synched files to be ReadOnly" -ForegroundColor Cyan
