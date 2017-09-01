@@ -1349,7 +1349,7 @@ function CreateSpecificXPOs([string]$xpoFileName)
             # Flush accumulated buffer
             $writer.Write($buffer)
         }
-        if ($line -match 'Element: DBE' -or $line -match 'Element: UTE')
+        if ($line -match 'Element: DBE' -or $line -match 'Element: UT') # All EDTs are User Types in fact, thus UT is the right prefix to look for.
             {
                 if (!$baseddWriter)
                 {
@@ -2158,7 +2158,7 @@ function Install-PackagesToGAC($packagesFolder)
             Write-ErrorLog 'GacUtil was unable to complete in 5 seconds'
             $p.Kill()
         }
-        Write-Infolog $out#>
+        # Write-Infolog $out
     }
 }
 
